@@ -1,5 +1,6 @@
-/venv
+.venv
 .python-version
 .DS_store
 components/__pycache__
-bot(__pycache__
+bot/__pycache__
+config
