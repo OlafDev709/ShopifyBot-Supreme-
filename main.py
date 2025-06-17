@@ -1,4 +1,6 @@
 # Importing Libraries
+from rich.console import Console
+from rich.progress import track
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 import requests
@@ -7,10 +9,15 @@ from datetime import datetime
 from sys import exit
 
 # Bot Class
+
+
 class Bot:
 
     # Constructor
     def __init__(self) -> None:
+
+        # Creating a Console Instance
+        self.console = Console()
 
         # Saving Items
         with open("Items.json", "r") as i:
@@ -42,20 +49,22 @@ class Bot:
                 self.cvv = data["CVV"]
 
         # Item's Links Listing
-        self.links_list= []
+        self.links_list = []
 
         # Buy Times
         self.HOUR = "12"
-        self.MINUTE = "00"
+        self.MINUTE = "0"
 
     # Scrape Method for Saving the urls
     def scrape(self) -> None:
 
         # Looping the Items' Types
-        for i in range(len(self.items_name)):
+        for i in track(range(len(self.items_name)),
+                       description="🔗 [blue]Extracting Items' Links...[/blue]"):
 
             # Scraping
-            url = "https://www.supremenewyork.com/shop/all/" + self.items_type[i]
+            url = "https://www.supremenewyork.com/shop/all/" + \
+                self.items_type[i]
             source = requests.get(url).text
             soup = BeautifulSoup(source, "html.parser")
             links = [
@@ -70,54 +79,63 @@ class Bot:
             for link_ in links:
                 source = requests.get(link_).text
                 soup = BeautifulSoup(source, "html.parser")
-                name = soup.find("h1", class_ = "protect").text
-                style = soup.find("p", class_ = "style protect").text
+                name = soup.find("h1", class_="protect").text
+                style = soup.find("p", class_="style protect").text
                 if name == self.items_name[i] and style == self.items_style[i]:
                     self.links_list.append(link_)
                     break
 
     # Method for add to the cart the requeted elements
     def addTobasket(self, page) -> None:
-        
+
         # Looping the Element's to Buy List
-        for i in range(len(self.links_list)):
+        for i in track(range(len(self.links_list)),
+                       description="💸 [green]Buying the Items...[/green]"):
             page.goto(self.links_list[i])
-            
+
             # Saving Page Data
             source = requests.get(self.links_list[i]).text
             soup = BeautifulSoup(source, "html.parser")
 
             # Checking if Elements is Buyable
-            if soup.find("select", id = "size") and soup.find("input", type = "submit"):
+            if soup.find(
+                    "select",
+                    id="size") and soup.find(
+                    "input",
+                    type="submit"):
                 page.click("#size")
                 option = page.query_selector("#size")
-                option.select_option(label = self.items_size[i])
+                option.select_option(label=self.items_size[i])
                 page.click("input.button")
 
     # Method for Compiling the Checkout Form
     def checkout(self, page) -> None:
 
-        # Going to the Checkout
-        page.click("a.button:nth-child(3)")
+        # Performing Actions while in an Animation
+        with self.console.status("🖋️ [yellow]Performing the Checkout...[/yellow]"):
 
-        # Using Data to Compile the Form
-        page.fill("#order_billing_name", self.name_surname)
-        page.fill("#order_email", self.email)
-        page.fill("#order_tel", self.tel)
-        page.fill("#order_billing_address", self.address)
-        page.fill("#order_billing_city", self.city)
-        page.fill("#order_billing_zip", str(self.postal_code))
-        page.click("#order_billing_country")
-        option = page.query_selector("#order_billing_country")
-        option.select_option(label = self.country.upper())
-        page.fill("#credit_card_number", str(self.card_number))
-        page.click("#credit_card_month")
-        option = page.query_selector("#credit_card_month")
-        option.select_option(label = str(self.month_exp))
-        page.click("#credit_card_year")
-        option = page.query_selector("#credit_card_year")
-        option.select_option(label = str(self.year_exp))
-        page.fill("#credit_card_verification_value", str(self.cvv))
+            # Going to the Checkout
+            page.click("a.button:nth-child(3)")
+
+            # Using Data to Compile the Form
+            page.fill("#order_billing_name", self.name_surname)
+            page.fill("#order_email", self.email)
+            page.fill("#order_tel", self.tel)
+            page.fill("#order_billing_address", self.address)
+            page.fill("#order_billing_city", self.city)
+            page.fill("#order_billing_zip", str(self.postal_code))
+            page.click("#order_billing_country")
+            option = page.query_selector("#order_billing_country")
+            option.select_option(label=self.country.upper())
+            page.fill("#credit_card_number", str(self.card_number))
+            page.click("#credit_card_month")
+            option = page.query_selector("#credit_card_month")
+            option.select_option(label=str(self.month_exp))
+            page.click("#credit_card_year")
+            option = page.query_selector("#credit_card_year")
+            option.select_option(label=str(self.year_exp))
+            page.fill("#credit_card_verification_value", str(self.cvv))
+
 
 # Main Program
 if __name__ == "__main__":
@@ -127,7 +145,7 @@ if __name__ == "__main__":
 
     # Create a Loop for Instants Buying
     while True:
-        
+
         # Saving the Current Time
         now = datetime.now()
 
@@ -141,7 +159,7 @@ if __name__ == "__main__":
             with sync_playwright() as p:
 
                 # Creating a Browser Instance
-                browser = p.chromium.launch(headless = False)
+                browser = p.chromium.launch(headless=True)
                 page = browser.new_page()
 
                 # Adding the Requeted Elements to the Basket
