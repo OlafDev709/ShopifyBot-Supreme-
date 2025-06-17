@@ -1,5 +1,5 @@
 # Supreme-Bot
-Questo è il mio Bot Supreme personale, per l'acquisto di oggetti nel giorno del Drop di Supreme!
+Supreme Bot è un sistema gratuito per Acquistare Articoli di Supreme nel Giorno del Drop del Negozio Supreme!
 
 ## Set Up
 Scarica la cartella ZIP o clona il repository con:
@@ -12,7 +12,7 @@ Quindi installa le dipendenze in un virtualenv, puoi crearne uno tramite `python
 pip install -r requirements.txt
 ```
 
-Dopo ave rinstallato le dipendenze, esegui questo comando:
+Dopo aver installato le dipendenze, esegui questo comando:
 ```
 playwright install
 ```
