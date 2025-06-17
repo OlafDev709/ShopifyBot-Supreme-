@@ -1,5 +1,4 @@
 # Importing Libraries
-from rich.console import Console
 from playwright.sync_api import sync_playwright, TimeoutError
 import json
 import playwright
@@ -9,9 +8,6 @@ class Bot:
 
     # Constructor
     def __init__(self) -> None:
-
-        # Creating a Console Instance
-        self.CONSOLE: Console = Console()
 
         # Opening the Items File
         with open("./config/items.json", "r") as i:
@@ -129,16 +125,12 @@ class Bot:
         page.fill("input[name='firstName']", self.FIRST_NAME)
         page.fill("input[name='lastName']", self.LAST_NAME)
         page.fill("input[name='address1']", self.ADDRESS)
-        page.fill("input[name='postalCode']", self.POSTAL_CODE)
         page.fill("input[name='city']", self.CITY)
         try:
             page.wait_for_selector("select[name='zone']")
             options = page.locator("select[name='zone']")
-            options.select_options(label=f"{self.ZONE}")
+            options.select_option(label=f"{self.ZONE}")
         except Exception:
             pass
+        page.fill("input[name='postalCode']", self.POSTAL_CODE)
         page.fill("input[name='phone']", self.PHONE)
-        page.fill("input[name='number']", self. CARD_NUMBER)
-        page.fill("input[name='expiry']", f"{self.MONTH_EXP} / {self.YEAR_EXP}")
-        page.fill("input[name='verification_value']", self.CVV)
-        page.fill("input[name='name']", self.NAME_ON_CARD)
