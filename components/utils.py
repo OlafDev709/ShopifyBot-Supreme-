@@ -7,7 +7,7 @@ import re
 import json
 from components.zones import *
 from components.checkout import CheckoutUI
-from io import StringIO
+import os
 
 # Util function to get all the drop dates for the current release
 @st.cache_data
@@ -46,32 +46,23 @@ def fetch_items(drop_date: str, item_category: str) -> dict:
     # Coverting data to url format
     data: str = convert_date(drop_date)
 
+    # Converting the tops-sweater option
+    if item_category == "Tops":
+        item_category = "tops-sweaters"
+
     # Constructing URL based on the Drop Date
-    url: str = f"https://www.supremecommunity.com/season/fall-winter2023/droplist/{data}/#"
+    url: str = f"https://www.supremecommunity.com/season/fall-winter2023/droplist/{
+        data}/#"
 
     # Creating an Object to store the fetched items
     items_dict: dict = {}
-
-    # Object for mapping categories to urllike category
-    categories: dict = {
-        "T-Shirts": "t-shirts",
-        "Accessories": "accessories",
-        "Sweatshirts": "sweatshirts",
-        "Hats": "hats",
-        "Jackets": "jackets",
-        "Tops-Sweaters": "tops-sweaters",
-        "Pants": "pants",
-        "Skate": "skate",
-        "Bags": "bags",
-        "Shirts": "shirts"
-    }
 
     # Fetching all items of a certain type
     response: requests.models.Response = requests.get(url)
     if response.status_code == 200:
         soup: BeautifulSoup = BeautifulSoup(response.text, "html.parser")
     item_divs: list = soup.find_all(
-        "div", {"data-category": f"{categories[item_category]}"})
+        "div", {"data-category": f"{item_category.lower()}"})
 
     # Storing Items' Infos
     for item in item_divs:
@@ -81,9 +72,11 @@ def fetch_items(drop_date: str, item_category: str) -> dict:
                                     {"class": "catalog-label-price"}).text.replace("\n",
                                                                                    "").split("/")[0] if item.find("span",
                                                                                                                   {"class": "catalog-label-price"}) else "None"
-        item_image: str = f'https://www.supremecommunity.com{item.find("img")["src"]}'
+        item_image: str = f'https://www.supremecommunity.com{item.find("img")[
+            "src"]}'
         item_colors: list = []
-        item_full_link: str = f'https://www.supremecommunity.com{item.find("a")["href"]}'
+        item_full_link: str = f'https://www.supremecommunity.com{item.find("a")[
+            "href"]}'
         response: requests.models.Response = requests.get(item_full_link)
         if item_price != "None" and response.status_code == 200:
             soup: BeautifulSoup = BeautifulSoup(response.text, "html.parser")
@@ -100,19 +93,21 @@ def fetch_items(drop_date: str, item_category: str) -> dict:
             "price": item_price,
             "image": item_image,
             "colors": item_colors,
+            "link": item_full_link
         }
 
     return items_dict
 
 # Util function to check if an item is already
 def is_item_in_basket(item_name: str) -> bool:
-    try:
+    # Get the absolute path to the JSON file
+    json_file_path = os.path.join("config", "items.json")
 
+    try:
         # Load existing items from the JSON file if it exists
-        with open("./config/items.json", "r") as json_file:
+        with open(json_file_path, "r") as json_file:
             basket: list = json.load(json_file)
     except FileNotFoundError:
-
         # If the file doesn't exist, the item is not in the basket
         return False
 
@@ -143,13 +138,14 @@ def add_to_basket(
         "category": item_category
     }
 
-    try:
+    # Get the absolute path to the JSON file
+    json_file_path = os.path.join("config", "items.json")
 
+    try:
         # Load existing items from the JSON file if it exists
-        with open("./config/items.json", "r") as json_file:
+        with open(json_file_path, "r") as json_file:
             basket: list = json.load(json_file)
     except FileNotFoundError:
-
         # If the file doesn't exist, start with an empty basket
         basket: list = []
 
@@ -157,42 +153,47 @@ def add_to_basket(
     basket.append(item_object)
 
     # Write the updated basket to the JSON file
-    with open("./config/items.json", "w") as json_file:
+    with open(json_file_path, "w") as json_file:
         json.dump(basket, json_file, indent=4)
 
-    # Showing a succes message
-    st.toast("Item added to basket", icon="✅")
+    # Showing a success message
+    st.toast("Item added to the basket", icon="✅")
 
 # Util function to delete an item
 def remove_from_basket(item_name: str) -> bool:
-    try:
+    # Get the absolute path to the JSON file
+    json_file_path = os.path.join("config", "items.json")
 
+    try:
         # Load existing items from the JSON file if it exists
-        with open("./config/items.json", "r") as json_file:
+        with open(json_file_path, "r") as json_file:
             basket: list = json.load(json_file)
     except FileNotFoundError:
-
         # If the file doesn't exist, there are no items to delete
         return False
 
     # Create a flag to check if the item was found and deleted
     item_deleted: bool = False
 
+    # Create a copy of the basket to avoid modifying it during iteration
+    basket_copy = basket.copy()
+
     # Iterate through items in the basket
-    for item in basket:
+    for item in basket_copy:
         if item.get("name") == item_name:
             basket.remove(item)  # Remove the item from the basket
-            item_deleted: bool = True
+            item_deleted = True
             break
 
     if item_deleted:
-
         # Write the updated basket to the JSON file
-        with open("./config/items.json", "w") as json_file:
+        with open(json_file_path, "w") as json_file:
             json.dump(basket, json_file, indent=4)
 
-    # Showing a succes message
-    st.toast("Item removed from basket", icon="❌")
+        # Showing a success message
+        st.toast("Item removed from the basket", icon="❌")
+
+    return item_deleted
 
 # Util function to check if the basket is empty
 def is_json_file_empty(file_path: str) -> bool:
@@ -208,13 +209,16 @@ def is_json_file_empty(file_path: str) -> bool:
 
 # Util function to get infos about an item in the basket
 def get_info_for_item(item_name: str, param: str):
+    # Get the absolute path to the JSON file
+    json_file_path = os.path.join("config", "items.json")
+
     try:
-        with open("./config/items.json", 'r') as json_file:
+        with open(json_file_path, 'r') as json_file:
             data: str = json.load(json_file)
             for item in data:
                 if "name" in item:
                     if item["name"] == item_name:
-                        return item[f"{param}"]
+                        return item.get(param, f"No such parameter: {param}")
             return "Item not found in JSON data"
     except FileNotFoundError:
         return "JSON file not found"
@@ -237,22 +241,22 @@ def country_zones(country_name: str) -> list:
 def save_pay_data(form: CheckoutUI) -> dict:
 
     # Creating a pay data dict
-        return {
-            "email": form.email,
-            "country": form.country,
-            "first_name": form.name,
-            "last_name": form.surname,
-            "address": form.address,
-            "postal_code": form.postal_code,
-            "city": form.city,
-            "phone": form.phone,
-            "card_number" : form.card_number,
-            "expiration_month": form.expiration_month,
-            "expiration_year": form.expiration_year,
-            "cvv": form.cvv,
-            "name_on_card": form.name_on_card,
-            "zone": form.zone if hasattr(form, "zone") else "None"
-        }
+    return {
+        "email": form.email,
+        "country": form.country,
+        "first_name": form.name,
+        "last_name": form.surname,
+        "address": form.address,
+        "postal_code": form.postal_code,
+        "city": form.city,
+        "phone": form.phone,
+        "card_number": form.card_number,
+        "expiration_month": form.expiration_month,
+        "expiration_year": form.expiration_year,
+        "cvv": form.cvv,
+        "name_on_card": form.name_on_card,
+        "zone": form.zone if hasattr(form, "zone") else "None"
+    }
 
 # Util function to get the next 5 years from current year
 @st.cache_data
@@ -262,13 +266,15 @@ def get_card_exp_years() -> list:
     return next_5_years
 
 # Util function to get month in a list based on current day
+@st.cache_data
 def months_in_numbers(selected_year: str):
     current_year: datetime.datetime = datetime.datetime.now().year
     current_month: datetime.datetime = datetime.datetime.now().month
 
     if selected_year == current_year:
-        # If the selected year is the current year, return months from the next month to December
-        months: list = [str(month) for month in range(current_month + 1, 13)]
+        # If the selected year is the current year, return months from the current
+        # month to December
+        months: list = [str(month) for month in range(current_month, 13)]
     else:
         # For any other year, return all months
         months: list = [str(month) for month in range(1, 13)]
@@ -276,17 +282,15 @@ def months_in_numbers(selected_year: str):
     return months
 
 # Util function to get pay props from pay.config file
-def get_pay_prop(file, prop: str) -> str:
+@st.cache_data
+def get_pay_prop(prop: str) -> str:
 
-    # Coverting the uploaded file to a readable format
-    stringio: StringIO = StringIO(file.getvalue().decode("utf-8"))
-
-    # To read file as string:
-    string_data: str = stringio.read()
+    file_path = os.path.join("config", "pay.json")
 
     try:
-        data: str = json.loads(string_data)
-        return data[0][prop]
+        with open(file_path, 'r', encoding='utf-8') as file:
+            data = json.load(file)
+            return data[0][prop]
     except FileNotFoundError:
         return None  # File not found
     except json.JSONDecodeError:

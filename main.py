@@ -12,11 +12,11 @@ from components.download_btn import DownloadButtonUI
 if __name__ == "__main__":
 
     # Configuration
-    st.set_page_config("SupremeBot", "img/icon.png", "wide")
+    st.set_page_config("Supremebot", "img/icon.png", "wide")
 
     # Injecting CSS for image styling
     st.markdown(
-        "<style> img { border-radius: 5%; }</style>",
+        "<style> img { border-radius: 5%; } </style>",
         unsafe_allow_html=True)
 
     # Setting up the dates selection
@@ -38,8 +38,9 @@ if __name__ == "__main__":
         form: CheckoutUI = CheckoutUI()
 
         # Button for saving paying methods
-        with form.save_data_col:
+        with form.save_pay_method_col:
             DownloadButtonUI(form)
-        
+
         # User input to start the Bot
-        buy_btn: BuyButtonUI = BuyButtonUI()
+        with form.buy_col:
+            buy_btn: BuyButtonUI = BuyButtonUI()

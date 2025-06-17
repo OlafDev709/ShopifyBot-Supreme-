@@ -5,8 +5,12 @@ from playwright.sync_api import sync_playwright, TimeoutError
 
 class BuyButtonUI:
     def __init__(self) -> None:
-        
-        self.buy_btn = st.button("BUY", key="buy-btn", type="primary")
+
+        self.buy_btn = st.button(
+            "Start Supremebot",
+            key="buy-btn",
+            type="primary",
+            use_container_width=True)
         if self.buy_btn:
 
             # Creating the Bot
@@ -24,6 +28,6 @@ class BuyButtonUI:
                 try:
                     bot.checkout(page)
                 except TimeoutError:
-                    print("Timeout while performing checkout")  # Handle timeout
+                    pass
 
                 input()
