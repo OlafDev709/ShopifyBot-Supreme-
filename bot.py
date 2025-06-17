@@ -148,3 +148,46 @@ class Bot:
         links = list(dict.fromkeys(links))
         for element in links:
             self.f_links_list.append(SUPREME_PARTIAL_LINK + element)
+
+    # Check the Links and Adding the Right One the the Item to Buy List
+    def check_and_Buy(self, x):
+        for y in range(len(self.f_links_list)):
+            code = requests.get(self.f_links_list[y]).text
+            soup = BeautifulSoup(code, 'lxml')
+            current_item_name = soup.find('h1', class_='protect').text
+            current_item_style = soup.find(
+                'p', class_='style protect').text
+            # print(f"Item: {current_item_name} Style: {current_item_style}")
+            if self.item_name[x] in current_item_name and self.item_style[x] in current_item_style:
+                self.items_to_buy_links.append(self.f_links_list[y])
+                self.f_links_list.clear()
+                print(f"Item {self.item_name[x]} Status: Found")
+                break
+
+    # Iterator for the Items
+    def ItemIterator(self):
+        for x in range(len(self.item_name)):
+            self.switch(x)
+            self.scrape()
+            self.check_and_Buy(x)
+
+    # defining adding to basket and checkout function
+    def add_to_basket(self):
+        for e in range(len(self.items_to_buy_links)):
+            self.driver.get(self.items_to_buy_links[e])
+            try:
+                size_opt_btn = self.driver.find_element_by_xpath(SIZE_XPATH)
+                size_opt_btn.click()
+                time.sleep(0.3)
+                size_btn = self.driver.find_element_by_xpath(
+                    "(//*[contains(text(), '" + self.item_size[e] + "')] | //*[@value='" + self.item_size[e] + "'])")
+                size_btn.click()
+            except:
+                print("Size not Found!")
+            try:
+                add_to_basket_btn = self.driver.find_element_by_xpath(
+                    ADD_TO_BASKET_XPATH)
+                time.sleep(0.3)
+                add_to_basket_btn.click()
+            except:
+                print("There's been an ERROR or the Item is SOLD OUT!")
